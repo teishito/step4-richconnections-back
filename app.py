@@ -74,23 +74,37 @@ async def analyze(req: AnalysisRequest):
 @app.post("/api/generate-campaign-image")
 async def generate_campaign_image(req: ImageRequest):
     try:
-        prompt = f"以下のビジネス分析結果をもとに、SNSキャンペーン用の魅力的なイメージを生成してください。画像には地元密着型、信頼、持続可能性、DX推進などの印象を含めてください:\n\n{req.analysis_summary}"
+        image_prompt = f"""
+以下は地方中小企業の経営診断に基づいた要約結果です。この内容をもとに、SNSでプレゼントキャンペーンを告知するための画像を生成してください。
 
-        print("🎯 Image Prompt:", prompt[:100] + "...")  # ログ出力（先頭のみ）
+【目的】
+「地方中小企業応援キャンペーン」のSNS投稿用プレゼント告知画像
 
+【画像構成】
+- 明るく親しみやすい雰囲気
+- プレゼントキャンペーンを伝える構図（プレゼントボックス・笑顔の人々・フォローやシェアのイメージ）
+- 文字例: 「今だけ！フォロー＆いいねで豪華商品をプレゼント」「#地域活性 #応援キャンペーン」
+- SNSで映える正方形構図（Instagram向け）
+
+【色・スタイル】
+- 信頼感と活気を感じさせるブルー＋オレンジ
+- モダンなイラストまたは手描き風
+
+【要約】
+{req.analysis_summary}
+"""
         response = openai.images.generate(
             model="dall-e-3",
-            prompt=prompt,
-            n=1,
-            size="1024x1024"
+            prompt=image_prompt,
+            size="1024x1024",
+            quality="standard",
+            n=1
         )
-
         image_url = response.data[0].url
         return {"image_url": image_url}
-
     except Exception as e:
-        print("❌ Server Error (generate-campaign-image):", str(e))
-        return JSONResponse(status_code=500, content={"error": f"Image generation failed: {str(e)}"})
+        print("❌ Image Generation Error:", str(e))
+        return JSONResponse(status_code=500, content={"error": f"画像生成エラー: {str(e)}"})
 
 # ======================
 # ▶️ ローカル実行（開発用）
