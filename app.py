@@ -40,9 +40,9 @@ print("✅ 使用モデル:", model)
 class AnalysisRequest(BaseModel):
     prompt: str
 
-class CampaignImageRequest(BaseModel):
+class ImageRequest(BaseModel):
     analysis_summary: str
-
+    
 # ============================
 # 🧪 動作確認用エンドポイント
 # ============================
@@ -68,25 +68,29 @@ async def analyze(req: AnalysisRequest):
         print("❌ Server Error:", str(e))
         return JSONResponse(status_code=500, content={"error": f"Internal Server Error: {str(e)}"})
 
-# ====================================
-# 🖼️ SNSキャンペーン画像生成APIエンドポイント
-# ====================================
+# ================================
+# 🖼 SNSキャンペーン画像生成API
+# ================================
 @app.post("/api/generate-campaign-image")
-async def generate_campaign_image(req: CampaignImageRequest):
+async def generate_campaign_image(req: ImageRequest):
     try:
-        prompt = f"Generate a promotional campaign image based on the following Japanese business analysis:\n{req.analysis_summary}\nDesign it to be visually appealing for social media, include relevant symbols, and use modern Japanese design aesthetics."
+        prompt = f"以下のビジネス分析結果をもとに、SNSキャンペーン用の魅力的なイメージを生成してください。画像には地元密着型、信頼、持続可能性、DX推進などの印象を含めてください:\n\n{req.analysis_summary}"
 
-        image_response = openai.images.generate(
+        print("🎯 Image Prompt:", prompt[:100] + "...")  # ログ出力（先頭のみ）
+
+        response = openai.images.generate(
             model="dall-e-3",
             prompt=prompt,
             n=1,
             size="1024x1024"
         )
-        image_url = image_response.data[0].url
-        return {"imageUrl": image_url}
+
+        image_url = response.data[0].url
+        return {"image_url": image_url}
+
     except Exception as e:
         print("❌ Server Error (generate-campaign-image):", str(e))
-        return JSONResponse(status_code=500, content={"error": f"Internal Server Error: {str(e)}"})
+        return JSONResponse(status_code=500, content={"error": f"Image generation failed: {str(e)}"})
 
 # ======================
 # ▶️ ローカル実行（開発用）
