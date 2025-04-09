@@ -3,10 +3,12 @@
 # ====================================
 import os
 import openai
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+import instaloader
+import re
 
 # ================================
 # 🚀 FastAPI アプリケーション作成
