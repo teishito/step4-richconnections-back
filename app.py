@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import instaloader
 import re
+from collections import defaultdict
 
 # ================================
 # 🚀 FastAPI アプリケーション作成
@@ -133,6 +134,64 @@ async def fetch_instagram_post(post: PostURL):
             "comments": post_data.comments,
         }
         return result
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+# ================================
+# 📊 エンゲージメントレポート生成API
+# ================================
+@app.post("/api/engagement-report")
+async def engagement_report(post: PostURL):
+    try:
+        shortcode_match = re.search(r"/p/([^/?#&]+)", post.url)
+        if not shortcode_match:
+            return JSONResponse(status_code=400, content={"error": "URLが正しくありません"})
+
+        shortcode = shortcode_match.group(1)
+        loader = instaloader.Instaloader()
+
+        # 投稿を取得
+        post_data = instaloader.Post.from_shortcode(loader.context, shortcode)
+
+        # 直近50人のいいねユーザーを取得
+        likers = []
+        for index, liker in enumerate(post_data.get_likes()):
+            if index >= 50:
+                break
+            likers.append({
+                "username": liker.username,
+                "followers": liker.followers,
+                "followees": liker.followees,
+                "engagement": 0  # 後ほど計算
+            })
+
+        # 投稿のいいね数・コメント数から全体エンゲージメントを取得
+        total_likes = post_data.likes
+        total_comments = post_data.comments
+        total_engagement = total_likes + total_comments
+
+        for liker in likers:
+            try:
+                # 仮にエンゲージメント率をフォロワー数で割って求める
+                if liker["followers"] > 0:
+                    liker["engagement"] = round((1 + 1) / liker["followers"] * 100, 2)  # 1 like + 1 comment (仮)
+                else:
+                    liker["engagement"] = 0
+            except Exception as e:
+                liker["engagement"] = 0
+
+        # ランキング用に並べ替え
+        likes_ranking = sorted(likers, key=lambda x: x["username"])
+        comment_ranking = sorted(likers, key=lambda x: x["username"])
+        engagement_ranking = sorted(likers, key=lambda x: x["engagement"], reverse=True)
+
+        return {
+            "likers": likers,
+            "likes_ranking": likes_ranking[:10],
+            "comment_ranking": comment_ranking[:10],
+            "engagement_ranking": engagement_ranking[:10],
+            "average_engagement": round(sum([l["engagement"] for l in likers]) / len(likers), 2) if likers else 0
+        }
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
