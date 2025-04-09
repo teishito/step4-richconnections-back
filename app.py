@@ -42,6 +42,9 @@ class AnalysisRequest(BaseModel):
 
 class ImageRequest(BaseModel):
     analysis_summary: str
+
+class PostURL(BaseModel):
+    url: str
     
 # ============================
 # 🧪 動作確認用エンドポイント
@@ -105,6 +108,31 @@ async def generate_campaign_image(req: ImageRequest):
     except Exception as e:
         print("❌ Image Generation Error:", str(e))
         return JSONResponse(status_code=500, content={"error": f"画像生成エラー: {str(e)}"})
+
+# ================================
+# 🖼 SNS投稿データ
+# ================================
+@app.post("/api/fetch-instagram-post")
+async def fetch_instagram_post(post: PostURL):
+    try:
+        shortcode_match = re.search(r"/p/([^/?#&]+)", post.url)
+        if not shortcode_match:
+            return JSONResponse(status_code=400, content={"error": "URLが正しくありません"})
+
+        shortcode = shortcode_match.group(1)
+
+        loader = instaloader.Instaloader()
+        post_data = instaloader.Post.from_shortcode(loader.context, shortcode)
+
+        result = {
+            "image_url": post_data.url,
+            "caption": post_data.caption,
+            "likes": post_data.likes,
+            "comments": post_data.comments,
+        }
+        return result
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 # ======================
 # ▶️ ローカル実行（開発用）
