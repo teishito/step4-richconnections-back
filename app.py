@@ -10,6 +10,10 @@ from pydantic import BaseModel
 import instaloader
 import re
 from collections import defaultdict
+from instaloader import Instaloader, Profile
+from typing import List
+import csv
+import tempfile
 
 # ================================
 # 🚀 FastAPI アプリケーション作成
@@ -192,6 +196,39 @@ async def engagement_report(post: PostURL):
             "engagement_ranking": engagement_ranking[:10],
             "average_engagement": round(sum([l["engagement"] for l in likers]) / len(likers), 2) if likers else 0
         }
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+# ================================
+# 📊 フォロワーリスト取得API
+# ================================
+@app.post("/api/export-followers")
+async def export_followers(username: str):
+    try:
+        loader = Instaloader()
+        profile = Profile.from_username(loader.context, username)
+        followers = profile.get_followers()
+
+        results = []
+        for follower in followers:
+            results.append({
+                "username": follower.username,
+                "full_name": follower.full_name,
+                "bio": follower.biography,
+                "followers": follower.followers,
+                "followees": follower.followees,
+                "is_private": follower.is_private,
+                "is_verified": follower.is_verified,
+            })
+
+        with tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".csv") as temp_file:
+            writer = csv.DictWriter(temp_file, fieldnames=results[0].keys())
+            writer.writeheader()
+            writer.writerows(results)
+            csv_path = temp_file.name
+
+        return FileResponse(csv_path, media_type="text/csv", filename=f"{username}_followers.csv")
+
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
