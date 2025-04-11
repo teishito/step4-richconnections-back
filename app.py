@@ -14,6 +14,10 @@ from instaloader import Instaloader, Profile
 from typing import List
 import csv
 import tempfile
+from azure.storage.blob import BlobServiceClient
+import requests
+from urllib.parse import urlparse
+import uuid
 
 # ================================
 # 🚀 FastAPI アプリケーション作成
@@ -37,9 +41,19 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 openai.api_base = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")
 model = os.getenv("OPENAI_MODEL", "gpt-4o-2024-08-06")
 
-print("✅ APIキー:", openai.api_key[:8] + "..." if openai.api_key else "None")
-print("✅ API BASE:", openai.api_base)
+# Azure Storage設定
+azure_connection_string = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
+if not azure_connection_string:
+    raise ValueError("AZURE_STORAGE_CONNECTION_STRING が設定されていません")
+
+blob_service_client = BlobServiceClient.from_connection_string(azure_connection_string)
+container_name = "instagram-posts"  # ストレージコンテナ名（固定であればここに記述）
+
+# ログ出力（本番ではコメントアウトしてもOK）
+print("✅ OpenAI APIキー:", openai.api_key[:8] + "..." if openai.api_key else "None")
+print("✅ OpenAI BASE:", openai.api_base)
 print("✅ 使用モデル:", model)
+print("✅ Azure Blob 接続済み")
 
 # ======================
 # 📦 リクエストモデル定義
@@ -119,28 +133,55 @@ async def generate_campaign_image(req: ImageRequest):
 # ================================
 # 🖼 SNS投稿データ
 # ================================
+from azure.storage.blob import BlobServiceClient, ContentSettings
+import requests
+import uuid
+
 @app.post("/api/fetch-instagram-post")
 async def fetch_instagram_post(post: PostURL):
     try:
+        # Instagram URL から shortcode を抽出
         shortcode_match = re.search(r"/p/([^/?#&]+)", post.url)
         if not shortcode_match:
             return JSONResponse(status_code=400, content={"error": "URLが正しくありません"})
 
         shortcode = shortcode_match.group(1)
 
+        # Instaloaderで投稿情報取得
         loader = instaloader.Instaloader()
         post_data = instaloader.Post.from_shortcode(loader.context, shortcode)
 
+        # 画像URL取得
+        image_url = post_data.url
+
+        # 画像を取得（バイナリ）
+        img_data = requests.get(image_url).content
+        filename = f"{shortcode}_{uuid.uuid4().hex}.jpg"
+
+        # Azure Storage へアップロード
+        blob_client = blob_service_client.get_blob_client(container=container_name, blob=filename)
+        blob_client.upload_blob(
+            img_data,
+            overwrite=True,
+            blob_type="BlockBlob",
+            content_settings=ContentSettings(content_type="image/jpeg")
+        )
+
+        # Azure上の公開URL
+        uploaded_image_url = f"https://{blob_service_client.account_name}.blob.core.windows.net/{container_name}/{filename}"
+
+        # 投稿情報とアップロードした画像URLを返す
         result = {
-            "image_url": post_data.url,
+            "image_url": uploaded_image_url,
             "caption": post_data.caption,
             "likes": post_data.likes,
             "comments": post_data.comments,
         }
         return result
+
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
-
+        
 # ================================
 # 📊 エンゲージメントレポート生成API
 # ================================
