@@ -42,7 +42,7 @@ openai.api_base = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")
 # model = os.getenv("OPENAI_MODEL", "gpt-4o-2024-08-06")
 
 openai.api_type = "azure"  # ← 必須
-openai.api_version = os.getenv("OPENAI_API_VERSION", "2024-02-15-preview")  # ← 追加
+openai.api_version = os.getenv("OPENAI_API_VERSION", "2024-07-01-preview") 
 
 model = os.getenv("OPENAI_MODEL", "gpt4o")  # デプロイ名（モデル名ではない）
 
