@@ -4,3 +4,4 @@ uvicorn
 python-dotenv
 instaloader
 azure-storage-blob
+requests
