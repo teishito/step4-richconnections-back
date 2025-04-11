@@ -39,6 +39,7 @@ app.add_middleware(
 # =======================
 openai.api_key = os.getenv("OPENAI_API_KEY")
 openai.api_base = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")
+openai.api_type = "azure"  # ← 必須
 model = os.getenv("OPENAI_MODEL", "gpt-4o-2024-08-06")
 
 # Azure Storage設定
