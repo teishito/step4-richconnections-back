@@ -44,7 +44,7 @@ openai.api_base = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")
 openai.api_type = "azure"  # ← 必須
 openai.api_version = os.getenv("OPENAI_API_VERSION", "2024-07-01-preview") 
 
-model = os.getenv("OPENAI_MODEL", "gpt4o")  # デプロイ名（モデル名ではない）
+model = os.getenv("OPENAI_MODEL", "gpt-4o")  # デプロイ名（モデル名ではない）
 
 # Azure Storage設定
 azure_connection_string = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
