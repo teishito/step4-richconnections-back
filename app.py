@@ -2,6 +2,7 @@
 # 🔧 ライブラリと初期設定の読み込み
 # ====================================
 import os
+import urllib.parse
 import openai
 from openai import AzureOpenAI
 from fastapi import FastAPI, Request
