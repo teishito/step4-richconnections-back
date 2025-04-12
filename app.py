@@ -37,28 +37,25 @@ app.add_middleware(
 # =======================
 # 🔐 Azure 環境変数から取得
 # =======================
+# OpenAI API 関連
+openai.api_type = "azure"
 openai.api_key = os.getenv("OPENAI_API_KEY")
-openai.api_base = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")
-# model = os.getenv("OPENAI_MODEL", "gpt-4o-2024-08-06")
+openai.api_base = os.getenv("OPENAI_API_BASE")
+openai.api_version = os.getenv("OPENAI_API_VERSION")
+model = os.getenv("OPENAI_MODEL")
 
-openai.api_type = "azure"  # ← 必須
-openai.api_version = os.getenv("OPENAI_API_VERSION", "2024-07-01-preview") 
-
-model = os.getenv("OPENAI_MODEL", "gpt-4o")  # デプロイ名（モデル名ではない）
-
-# Azure Storage設定
+# Azure Blob Storage 接続
 azure_connection_string = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
 if not azure_connection_string:
-    raise ValueError("AZURE_STORAGE_CONNECTION_STRING が設定されていません")
-
+    raise ValueError("❌ AZURE_STORAGE_CONNECTION_STRING が設定されていません")
 blob_service_client = BlobServiceClient.from_connection_string(azure_connection_string)
-container_name = "instagram-posts"  # ストレージコンテナ名（固定であればここに記述）
+container_name = "instagram-posts"
 
 # ログ出力（本番ではコメントアウトしてもOK）
-print("✅ OpenAI APIキー:", openai.api_key[:8] + "..." if openai.api_key else "None")
-print("✅ OpenAI BASE:", openai.api_base)
-print("✅ 使用モデル:", model)
-print("✅ Azure Blob 接続済み")
+print("✅ OPENAI_BASE:", openai.api_base)
+print("✅ MODEL:", model)
+print("✅ API_VERSION:", openai.api_version)
+print("✅ AZURE_STORAGE:", blob_service_client.account_name)
 
 # ======================
 # 📦 リクエストモデル定義
@@ -86,7 +83,8 @@ async def hello_world():
 async def analyze(req: AnalysisRequest):
     try:
         completion = openai.chat.completions.create(
-            model=model,
+            #model=model,
+            engine=model,  # ここは「モデル名」ではなく「デプロイ名」
             messages=[
                 {"role": "system", "content": "あなたは地方中小企業の経営コンサルタントです。"},
                 {"role": "user", "content": req.prompt}
@@ -123,7 +121,8 @@ async def generate_campaign_image(req: ImageRequest):
 {req.analysis_summary}
 """
         response = openai.images.generate(
-            model="dall-e-3",
+            #model="dall-e-3",
+            engine="dall-e-3",  # ここは「モデル名」ではなく「デプロイ名」
             prompt=image_prompt,
             size="1024x1024",
             quality="standard",
