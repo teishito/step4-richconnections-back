@@ -3,6 +3,7 @@
 # ====================================
 import os
 import openai
+from openai import AzureOpenAI
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -110,18 +111,9 @@ async def analyze(req: AnalysisRequest):
 # ================================
 # 🖼 SNSキャンペーン画像生成API
 # ================================
-from openai import AzureOpenAI
-
 @app.post("/api/generate-campaign-image")
 async def generate_campaign_image(req: ImageRequest):
     try:
-        # Azure OpenAI クライアント初期化（DALL·E 用）
-        dalle_client = AzureOpenAI(
-            api_key=os.getenv("DALLE_API_KEY"),
-            azure_endpoint=os.getenv("DALLE_API_BASE"),
-            api_version=os.getenv("DALLE_API_VERSION", "2024-02-01")
-        )
-
         image_prompt = f"""
 以下は地方中小企業の経営診断に基づいた要約結果です。この内容をもとに、SNSでプレゼントキャンペーンを告知するための画像を生成してください。
 
@@ -142,8 +134,14 @@ async def generate_campaign_image(req: ImageRequest):
 {req.analysis_summary}
 """
 
+        dalle_client = AzureOpenAI(
+            api_key=os.getenv("DALLE_API_KEY"),
+            api_version=os.getenv("DALLE_API_VERSION", "2024-02-01"),
+            azure_endpoint=os.getenv("DALLE_API_BASE")
+        )
+
         response = dalle_client.images.generate(
-            model=os.getenv("DALLE_DEPLOYMENT_NAME", "dall-e-3"),  # ←デプロイ名！
+            model=os.getenv("DALLE_DEPLOYMENT_NAME", "dall-e-3"),
             prompt=image_prompt,
             size="1024x1024",
             quality="standard",
