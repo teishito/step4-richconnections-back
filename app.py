@@ -272,11 +272,20 @@ async def engagement_report(post: PostURL):
 async def export_followers(username: str):
     try:
         loader = Instaloader()
+        ig_username = os.getenv("INSTAGRAM_USERNAME")
+        ig_password = os.getenv("INSTAGRAM_PASSWORD")
+
+        if not ig_username or not ig_password:
+            raise ValueError("INSTAGRAM_USERNAME または INSTAGRAM_PASSWORD が未設定です")
+
+        loader.login(ig_username, ig_password)
         profile = Profile.from_username(loader.context, username)
         followers = profile.get_followers()
 
         results = []
-        for follower in followers:
+        for i, follower in enumerate(followers):
+            if i >= 30:
+                break
             results.append({
                 "username": follower.username,
                 "full_name": follower.full_name,
@@ -296,8 +305,9 @@ async def export_followers(username: str):
         return FileResponse(csv_path, media_type="text/csv", filename=f"{username}_followers.csv")
 
     except Exception as e:
+        print("❌ エラー:", str(e))
         return JSONResponse(status_code=500, content={"error": str(e)})
-
+        
 # ======================
 # ▶️ ローカル実行（開発用）
 # ======================
