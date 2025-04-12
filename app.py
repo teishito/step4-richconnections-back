@@ -79,11 +79,19 @@ async def hello_world():
 # ============================
 # 🧠 経営分析APIエンドポイント
 # ============================
+from openai import AzureOpenAI
+
 @app.post("/api/analyze")
 async def analyze(req: AnalysisRequest):
     try:
-        completion = openai.chat.completions.create(
-            model=model,  # = gpt-4o-3
+        client = AzureOpenAI(
+            api_version=os.getenv("OPENAI_API_VERSION", "2025-01-01-preview"),
+            azure_endpoint=os.getenv("OPENAI_API_BASE"),
+            api_key=os.getenv("OPENAI_API_KEY")
+        )
+
+        completion = client.chat.completions.create(
+            model=os.getenv("OPENAI_MODEL", "gpt-4o-3"),
             messages=[
                 {"role": "system", "content": "あなたは地方中小企業の経営コンサルタントです。"},
                 {"role": "user", "content": req.prompt}
@@ -93,10 +101,12 @@ async def analyze(req: AnalysisRequest):
             top_p=1.0
         )
         return {"result": completion.choices[0].message.content}
+
     except Exception as e:
-        print("❌ Server Error:", str(e))
+        import traceback
+        traceback.print_exc()  # ログ出力のため
         return JSONResponse(status_code=500, content={"error": f"Internal Server Error: {str(e)}"})
-        
+
 # ================================
 # 🖼 SNSキャンペーン画像生成API
 # ================================
