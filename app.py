@@ -110,9 +110,18 @@ async def analyze(req: AnalysisRequest):
 # ================================
 # 🖼 SNSキャンペーン画像生成API
 # ================================
+from openai import AzureOpenAI
+
 @app.post("/api/generate-campaign-image")
 async def generate_campaign_image(req: ImageRequest):
     try:
+        # Azure OpenAI クライアント初期化（DALL·E 用）
+        dalle_client = AzureOpenAI(
+            api_key=os.getenv("DALLE_API_KEY"),
+            azure_endpoint=os.getenv("DALLE_API_BASE"),
+            api_version=os.getenv("DALLE_API_VERSION", "2024-02-01")
+        )
+
         image_prompt = f"""
 以下は地方中小企業の経営診断に基づいた要約結果です。この内容をもとに、SNSでプレゼントキャンペーンを告知するための画像を生成してください。
 
@@ -132,20 +141,22 @@ async def generate_campaign_image(req: ImageRequest):
 【要約】
 {req.analysis_summary}
 """
-        response = openai.images.generate(
-            #model="dall-e-3",
-            engine="dall-e-3",  # ここは「モデル名」ではなく「デプロイ名」
+
+        response = dalle_client.images.generate(
+            model=os.getenv("DALLE_DEPLOYMENT_NAME", "dall-e-3"),  # ←デプロイ名！
             prompt=image_prompt,
             size="1024x1024",
             quality="standard",
             n=1
         )
+
         image_url = response.data[0].url
         return {"image_url": image_url}
+
     except Exception as e:
         print("❌ Image Generation Error:", str(e))
         return JSONResponse(status_code=500, content={"error": f"画像生成エラー: {str(e)}"})
-
+        
 # ================================
 # 🖼 SNS投稿データ
 # ================================
