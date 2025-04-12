@@ -83,18 +83,20 @@ async def hello_world():
 async def analyze(req: AnalysisRequest):
     try:
         completion = openai.chat.completions.create(
-            #model=model,
-            engine=model,  # ここは「モデル名」ではなく「デプロイ名」
+            model=model,  # = gpt-4o-3
             messages=[
                 {"role": "system", "content": "あなたは地方中小企業の経営コンサルタントです。"},
                 {"role": "user", "content": req.prompt}
-            ]
+            ],
+            max_tokens=4096,
+            temperature=1.0,
+            top_p=1.0
         )
         return {"result": completion.choices[0].message.content}
     except Exception as e:
         print("❌ Server Error:", str(e))
         return JSONResponse(status_code=500, content={"error": f"Internal Server Error: {str(e)}"})
-
+        
 # ================================
 # 🖼 SNSキャンペーン画像生成API
 # ================================
