@@ -19,6 +19,7 @@ from azure.storage.blob import BlobServiceClient
 import requests
 from urllib.parse import urlparse
 import uuid
+import mysql.connector
 
 # ================================
 # 🚀 FastAPI アプリケーション作成
@@ -52,11 +53,23 @@ if not azure_connection_string:
 blob_service_client = BlobServiceClient.from_connection_string(azure_connection_string)
 container_name = "instagram-posts"
 
-# ログ出力（本番ではコメントアウトしてもOK）
+# MySQL 接続情報
+MYSQL_DB_CONFIG = {
+    "host": os.getenv("MYSQL_DB_HOST"),
+    "port": int(os.getenv("MYSQL_DB_PORT", 3306)),
+    "user": os.getenv("MYSQL_DB_USER"),
+    "password": os.getenv("MYSQL_DB_PASSWORD"),
+    "database": os.getenv("MYSQL_DB_NAME"),
+    "ssl_ca": os.path.join(os.path.dirname(__file__), "DigiCertGlobalRootCA.crt.pem"),
+    "ssl_verify_cert": True
+}
+
+# ログ出力
 print("✅ OPENAI_BASE:", openai.api_base)
 print("✅ MODEL:", model)
 print("✅ API_VERSION:", openai.api_version)
 print("✅ AZURE_STORAGE:", blob_service_client.account_name)
+print("✅ MySQL HOST:", MYSQL_DB_CONFIG["host"])
 
 # ======================
 # 📦 リクエストモデル定義
@@ -69,13 +82,42 @@ class ImageRequest(BaseModel):
 
 class PostURL(BaseModel):
     url: str
-    
+
+class SignupRequest(BaseModel):
+    name: str
+    email: str
+    password: str
+
 # ============================
 # 🧪 動作確認用エンドポイント
 # ============================
 @app.get("/api/hello")
 async def hello_world():
     return JSONResponse(content={"message": "Hello World"})
+
+# ============================
+# 🚪 会員登録API (MySQL保存)
+# ============================
+@app.post("/api/register")
+async def register_user(user: SignupRequest):
+    try:
+        conn = mysql.connector.connect(**MYSQL_DB_CONFIG)
+        cursor = conn.cursor()
+
+        insert_sql = """
+            INSERT INTO users (name, email, password)
+            VALUES (%s, %s, %s)
+        """
+        cursor.execute(insert_sql, (user.name, user.email, user.password))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return {"message": "User registered successfully"}
+
+    except Exception as e:
+        print("MySQL Insert Error:", e)
+        return JSONResponse(status_code=500, content={"message": str(e)})
 
 # ============================
 # 🧠 経営分析APIエンドポイント
