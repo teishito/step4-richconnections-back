@@ -59,7 +59,7 @@ MYSQL_DB_CONFIG = {
     "host": os.getenv("MYSQL_DB_HOST"),
     "port": int(os.getenv("MYSQL_DB_PORT", 3306)),
     "user": os.getenv("MYSQL_DB_USER"),
-    "password": os.getenv("MYSQL_DB_PASSWORD"),
+    "password": urllib.parse.quote_plus(os.getenv("MYSQL_DB_PASSWORD"),
     "database": os.getenv("MYSQL_DB_NAME"),
     "ssl_ca": os.path.join(os.path.dirname(__file__), "DigiCertGlobalRootCA.crt.pem"),
     "ssl_verify_cert": True
