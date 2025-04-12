@@ -5,3 +5,4 @@ python-dotenv
 instaloader
 azure-storage-blob
 requests
+mysql-connector-python
