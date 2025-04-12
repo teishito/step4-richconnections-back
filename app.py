@@ -59,7 +59,7 @@ MYSQL_DB_CONFIG = {
     "host": os.getenv("MYSQL_DB_HOST"),
     "port": int(os.getenv("MYSQL_DB_PORT", 3306)),
     "user": os.getenv("MYSQL_DB_USER"),
-    "password": urllib.parse.quote_plus(os.getenv("MYSQL_DB_PASSWORD"),
+    "password": urllib.parse.quote_plus(os.getenv("MYSQL_DB_PASSWORD")),
     "database": os.getenv("MYSQL_DB_NAME"),
     "ssl_ca": os.path.join(os.path.dirname(__file__), "DigiCertGlobalRootCA.crt.pem"),
     "ssl_verify_cert": True
@@ -102,20 +102,20 @@ async def hello_world():
 @app.post("/api/register")
 async def register_user(user: SignupRequest):
     try:
-        print("🔍 受け取ったデータ:", user.dict())  # デバッグログ
+        print("🔍 受け取ったデータ:", user.dict())
 
         conn = mysql.connector.connect(**MYSQL_DB_CONFIG)
         cursor = conn.cursor()
 
         insert_sql = """
-            INSERT INTO users (name, email, password)
-            VALUES (%s, %s, %s)
+            INSERT INTO users (name, email, password, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s)
         """
-        cursor.execute(insert_sql, (user.name, user.email, user.password))
+        now = datetime.utcnow()
+        cursor.execute(insert_sql, (user.name, user.email, user.password, now, now))
         conn.commit()
 
         print("✅ 登録完了:", user.email)
-
         cursor.close()
         conn.close()
 
@@ -124,7 +124,7 @@ async def register_user(user: SignupRequest):
     except Exception as e:
         print("❌ MySQL Insert Error:", e)
         return JSONResponse(status_code=500, content={"message": str(e)})
-
+        
 # ============================
 # 🧠 経営分析APIエンドポイント
 # ============================
