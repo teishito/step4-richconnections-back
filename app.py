@@ -20,6 +20,7 @@ import requests
 from urllib.parse import urlparse
 import uuid
 import mysql.connector
+from datetime import datetime
 
 # ================================
 # 🚀 FastAPI アプリケーション作成
@@ -101,6 +102,8 @@ async def hello_world():
 @app.post("/api/register")
 async def register_user(user: SignupRequest):
     try:
+        print("🔍 受け取ったデータ:", user.dict())  # デバッグログ
+
         conn = mysql.connector.connect(**MYSQL_DB_CONFIG)
         cursor = conn.cursor()
 
@@ -110,13 +113,16 @@ async def register_user(user: SignupRequest):
         """
         cursor.execute(insert_sql, (user.name, user.email, user.password))
         conn.commit()
+
+        print("✅ 登録完了:", user.email)
+
         cursor.close()
         conn.close()
 
         return {"message": "User registered successfully"}
 
     except Exception as e:
-        print("MySQL Insert Error:", e)
+        print("❌ MySQL Insert Error:", e)
         return JSONResponse(status_code=500, content={"message": str(e)})
 
 # ============================
