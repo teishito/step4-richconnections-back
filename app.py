@@ -257,63 +257,62 @@ async def fetch_instagram_post(post: PostURL):
         return JSONResponse(status_code=500, content={"error": str(e)})
         
 # ================================
-# 📊 エンゲージメントレポート生成API
+# 📊 レポート生成API
 # ================================
-@app.post("/api/engagement-report")
-async def engagement_report(post: PostURL):
-    try:
-        shortcode_match = re.search(r"/p/([^/?#&]+)", post.url)
-        if not shortcode_match:
-            return JSONResponse(status_code=400, content={"error": "URLが正しくありません"})
 
-        shortcode = shortcode_match.group(1)
-        loader = instaloader.Instaloader()
-
-        # 投稿を取得
-        post_data = instaloader.Post.from_shortcode(loader.context, shortcode)
-
-        # 直近50人のいいねユーザーを取得
-        likers = []
-        for index, liker in enumerate(post_data.get_likes()):
-            if index >= 50:
-                break
-            likers.append({
-                "username": liker.username,
-                "followers": liker.followers,
-                "followees": liker.followees,
-                "engagement": 0  # 後ほど計算
-            })
-
-        # 投稿のいいね数・コメント数から全体エンゲージメントを取得
-        total_likes = post_data.likes
-        total_comments = post_data.comments
-        total_engagement = total_likes + total_comments
-
-        for liker in likers:
-            try:
-                # 仮にエンゲージメント率をフォロワー数で割って求める
-                if liker["followers"] > 0:
-                    liker["engagement"] = round((1 + 1) / liker["followers"] * 100, 2)  # 1 like + 1 comment (仮)
-                else:
-                    liker["engagement"] = 0
-            except Exception as e:
-                liker["engagement"] = 0
-
-        # ランキング用に並べ替え
-        likes_ranking = sorted(likers, key=lambda x: x["username"])
-        comment_ranking = sorted(likers, key=lambda x: x["username"])
-        engagement_ranking = sorted(likers, key=lambda x: x["engagement"], reverse=True)
-
-        return {
-            "likers": likers,
-            "likes_ranking": likes_ranking[:10],
-            "comment_ranking": comment_ranking[:10],
-            "engagement_ranking": engagement_ranking[:10],
-            "average_engagement": round(sum([l["engagement"] for l in likers]) / len(likers), 2) if likers else 0
+@app.post("/api/dummy-campaign-report")
+async def dummy_campaign_report():
+    return JSONResponse(content={
+        "likes": {
+            "ranking": [
+                {"user": "tomari_w", "value": 1867},
+                {"user": "jihy2010", "value": 1750},
+                {"user": "aozora", "value": 1719},
+                {"user": "sakemaimai", "value": 1252},
+                {"user": "chami_444", "value": 887},
+                {"user": "jur_1027", "value": 599},
+                {"user": "aopime", "value": 271},
+                {"user": "aiko_body", "value": 77},
+                {"user": "kayonomura_", "value": 33},
+                {"user": "hatsune_yd", "value": 0},
+            ],
+            "total": 8455,
+            "average": 939,
+        },
+        "comments": {
+            "ranking": [
+                {"user": "aozora", "value": 498},
+                {"user": "kayonomura_", "value": 418},
+                {"user": "aiko_body", "value": 343},
+                {"user": "chami_444", "value": 316},
+                {"user": "tomari_w", "value": 291},
+                {"user": "aopime", "value": 212},
+                {"user": "jihy2010", "value": 147},
+                {"user": "jur_1027", "value": 75},
+                {"user": "sakemaimai", "value": 22},
+                {"user": "hatsune_yd", "value": 0},
+            ],
+            "total": 2322,
+            "average": 258,
+        },
+        "engagement": {
+            "ranking": [
+                {"user": "tomari_w", "value": 44.44},
+                {"user": "aozora", "value": 25.0},
+                {"user": "kayonomura_", "value": 19.8},
+                {"user": "jihy2010", "value": 6.02},
+                {"user": "jur_1027", "value": 3.36},
+                {"user": "aiko_body", "value": 2.87},
+                {"user": "chami_444", "value": 2.72},
+                {"user": "sakemaimai", "value": 2.65},
+                {"user": "aopime", "value": 2.21},
+                {"user": "hatsune_yd", "value": 0},
+            ],
+            "total": 121.12,
+            "average": 12.12,
         }
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
-
+    })
+    
 # ================================
 # 📊 フォロワーリスト取得API
 # ================================
