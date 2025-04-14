@@ -146,7 +146,6 @@ async def analyze(req: AnalysisRequest):
                 {"role": "system", "content": "あなたは地方中小企業の経営コンサルタントです。"},
                 {"role": "user", "content": req.prompt}
             ],
-            max_tokens=4096,
             temperature=1.0,
             top_p=1.0
         )
