@@ -159,29 +159,55 @@ async def analyze(req: AnalysisRequest):
 # ================================
 # 🖼 SNSキャンペーン画像生成API
 # ================================
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from openai import AzureOpenAI
+import os
+
+app = FastAPI()
+
+class AnalysisRequest(BaseModel):
+    prompt: str
+
+class ImageRequest(BaseModel):
+    analysis_summary: str
+
+# ============================
+# 🧠 経営分析APIエンドポイント
+# ============================
+@app.post("/api/analyze")
+async def analyze(req: AnalysisRequest):
+    try:
+        client = AzureOpenAI(
+            api_version=os.getenv("OPENAI_API_VERSION", "2025-01-01-preview"),
+            azure_endpoint=os.getenv("OPENAI_API_BASE"),
+            api_key=os.getenv("OPENAI_API_KEY")
+        )
+
+        completion = client.chat.completions.create(
+            model=os.getenv("OPENAI_MODEL", "gpt-4o-3"),
+            messages=[
+                {"role": "system", "content": "あなたは地方中小企業の経営コンサルタントです。"},
+                {"role": "user", "content": req.prompt}
+            ],
+            temperature=1.0,
+            top_p=1.0,
+            max_tokens=2048  # 🔧 応答長を確保
+        )
+        return {"result": completion.choices[0].message.content}
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": f"Internal Server Error: {str(e)}"})
+
+# ================================
+# 🖼 SNSキャンペーン画像生成API
+# ================================
 @app.post("/api/generate-campaign-image")
 async def generate_campaign_image(req: ImageRequest):
     try:
-        image_prompt = f"""
-以下は地方中小企業の経営診断に基づいた要約結果です。この内容をもとに、SNSでプレゼントキャンペーンを告知するための画像を生成してください。
-
-【目的】
-「地方中小企業応援キャンペーン」のSNS投稿用プレゼント告知画像
-
-【画像構成】
-- 明るく親しみやすい雰囲気
-- プレゼントキャンペーンを伝える構図（プレゼントボックス・笑顔の人々・フォローやシェアのイメージ）
-- 文字例: 「今だけ！フォロー＆いいねで豪華商品をプレゼント」「#地域活性 #応援キャンペーン」
-- SNSで映える正方形構図（Instagram向け）
-
-【色・スタイル】
-- 信頼感と活気を感じさせるブルー＋オレンジ
-- モダンなイラストまたは手描き風
-
-【要約】
-{req.analysis_summary}
-"""
-
         dalle_client = AzureOpenAI(
             api_key=os.getenv("DALLE_API_KEY"),
             api_version=os.getenv("DALLE_API_VERSION", "2024-02-01"),
@@ -190,9 +216,9 @@ async def generate_campaign_image(req: ImageRequest):
 
         response = dalle_client.images.generate(
             model=os.getenv("DALLE_DEPLOYMENT_NAME", "dall-e-3"),
-            prompt=image_prompt,
+            prompt=req.analysis_summary,
             size="1024x1024",
-            quality="standard",
+            quality="hd",  # 🎯 高精細な画像生成を要求
             n=1
         )
 
