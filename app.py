@@ -143,7 +143,7 @@ async def analyze(req: AnalysisRequest):
         completion = client.chat.completions.create(
             model=os.getenv("OPENAI_MODEL", "gpt-4o-3"),
             messages=[
-                {"role": "system", "content": "あなたは地方中小企業の経営コンサルタントです。"},
+                {"role": "system", "content": "あなたは百戦錬磨の優秀な地方中小企業の経営コンサルタントです。"},
                 {"role": "user", "content": req.prompt}
             ],
             temperature=1.0,
@@ -188,7 +188,7 @@ async def analyze(req: AnalysisRequest):
         completion = client.chat.completions.create(
             model=os.getenv("OPENAI_MODEL", "gpt-4o-3"),
             messages=[
-                {"role": "system", "content": "あなたは地方中小企業の経営コンサルタントです。"},
+                {"role": "system", "content": "あなたは百戦錬磨の優秀な地方中小企業の経営コンサルタントです。"},
                 {"role": "user", "content": req.prompt}
             ],
             temperature=1.0,
