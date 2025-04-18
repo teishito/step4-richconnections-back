@@ -285,7 +285,7 @@ async def fetch_instagram_post(post: PostURL):
 # 📊 レポート生成API
 # ================================
 
-@app.post("/api/dummy-campaign-report")
+@app.get("/api/dummy-campaign-report")
 async def dummy_campaign_report():
     return JSONResponse(content={
         "likes": {
