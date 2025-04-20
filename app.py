@@ -1,16 +1,12 @@
 # ====================================
 # 🔧 ライブラリと初期設定の読み込み
 # ====================================
-# ====================================
-# 🔧 ライブラリと初期設定の読み込み
-# ====================================
 import os
 import urllib.parse
 import openai
 from openai import AzureOpenAI
 from fastapi import FastAPI, Request, HTTPException, Depends, APIRouter  # ← 追加　　Githubに追加！　HTTPException, Depends, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import instaloader
@@ -127,9 +123,6 @@ Base.metadata.create_all(bind=engine)
 # ================================
 # 🚀 FastAPI アプリケーション作成
 # ================================
-# ================================
-# 🚀 FastAPI アプリケーション作成
-# ================================
 app = FastAPI()
 
 # Line128～132 追加✅ Githubに追加！
@@ -147,10 +140,9 @@ app.add_middleware(
     allow_origins=["*"],  # セキュリティ上は必要に応じて制限
     allow_methods=["*"],
     allow_headers=["*"]
-    allow_headers=["*"]
 )
 
-# Line144～154 追加✅ Githubに追加！
+# Line145～155 追加✅ Githubに追加！
 # =============================
 # DBセッションを取得する依存関数   
 # =============================
@@ -160,7 +152,7 @@ def get_db():
         yield db
     finally:
         db.close()
-# Line144～154 追加✅ Githubに追加！
+# Line145～155 追加✅ Githubに追加！
 
 # =======================
 # 🔐 Azure 環境変数から取得
@@ -253,7 +245,7 @@ class Answers(BaseModel):
 async def hello_world():
     return JSONResponse(content={"message": "Hello World"})
 
-# Line247～336 追加✅ Githubに追加！
+# Line248～337 追加✅ Githubに追加！
 # =============================
 # ユーザー登録エンドポイント （ハッシュ照合対応）
 # =============================
@@ -342,7 +334,7 @@ async def submit_answers(payload: SubmitRequest):
     db.close()
 
     return {"status": "保存成功"}
-# Line247～336 追加✅ Githubに追加！
+# Line248～337追加✅ Githubに追加！
         
 # ============================
 # 🧠 経営分析APIエンドポイント
