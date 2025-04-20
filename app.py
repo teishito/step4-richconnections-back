@@ -1,12 +1,16 @@
 # ====================================
 # 🔧 ライブラリと初期設定の読み込み
 # ====================================
+# ====================================
+# 🔧 ライブラリと初期設定の読み込み
+# ====================================
 import os
 import urllib.parse
 import openai
 from openai import AzureOpenAI
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException, Depends, APIRouter  # ← 追加　　Githubに追加！　HTTPException, Depends, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import instaloader
@@ -23,20 +27,140 @@ import uuid
 import mysql.connector
 from datetime import datetime
 
+# Line26～121 追加✅ Githubに追加！
+from typing import Dict  # ← 追加  Githubに追加！
+import bcrypt  # ← 追加  Githubに追加！ # パスワードハッシュ化のため追加
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime  # ← DateTime を追加
+from sqlalchemy.ext.declarative import declarative_base # ← 追加  Githubに追加！
+from sqlalchemy.orm import sessionmaker, relationship, Session  # ← Session を追加
+import json # ← 追加  Githubに追加！
+from passlib.context import CryptContext # ← 追加  Githubに追加！ # パスワードハッシュ化のため追加
+from dotenv import load_dotenv # ← 追加  Githubに追加！
+load_dotenv() # ← 追加  Githubに追加！
+
+# =======================
+# Azure 環境変数から取得
+# =======================
+DB_HOST = os.getenv("DB_HOST")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = urllib.parse.quote_plus(os.getenv("DB_PASSWORD"))  # URLエンコード
+DB_NAME = os.getenv("DB_NAME")
+DB_PORT = os.getenv("DB_PORT", "3306")
+PORT = int(os.getenv("PORT", 8080))  # デフォルト 8080
+
+print("✅ .env 読み込みチェック:")
+print("DB_HOST:", DB_HOST)
+print("DB_USER:", DB_USER)
+print("DB_PASSWORD:", DB_PASSWORD)
+print("DB_NAME:", DB_NAME)
+print("DB_PORT:", DB_PORT)
+
+# SSL 証明書のパス
+SSL_CERT_PATH = os.path.join(os.path.dirname(__file__), "DigiCertGlobalRootCA.crt.pem")
+
+# MySQL接続情報（SSL 証明書を適用）
+SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"ssl": {"ssl_ca": SSL_CERT_PATH}}  # 👈 SSL 証明書を適用
+)
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+# =============================
+# テーブルモデル定義
+# =============================
+
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100))
+    email = Column(String(100), unique=True, index=True)
+    password = Column(String(100))
+    created_at = Column(DateTime)
+    updated_at = Column(DateTime)
+
+class Store(Base):
+    __tablename__ = "stores"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100))
+
+class Question(Base):
+    __tablename__ = "questions"
+    id = Column(Integer, primary_key=True, index=True)
+    text = Column(String(255))
+
+class Questionnaire(Base):
+    __tablename__ = "questionnaires"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    store_id = Column(Integer, ForeignKey("stores.id"))
+    created_at = Column(DateTime)
+    updated_at = Column(DateTime)
+
+class Answer(Base):  #✅追加 再々更新！
+    __tablename__ = "answers"
+    id = Column(Integer, primary_key=True, index=True)
+    questionnaire_id = Column(Integer, ForeignKey("questionnaires.id"))
+    question_key = Column(String(50))  # 例: "0-1"
+    answer_value = Column(String(255))
+    created_at = Column(DateTime)
+    updated_at = Column(DateTime)
+
+class DiagnosisAnswer(Base): #✅追加
+    __tablename__ = "diagnosis_answers"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    store_id = Column(Integer, ForeignKey("stores.id"))
+    question_key = Column(String(20))
+    answer = Column(String(255))
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+# =============================
+# DB初期化
+# =============================
+Base.metadata.create_all(bind=engine)
+# Line26～121 追加✅ Githubに追加！
+
+# ================================
+# 🚀 FastAPI アプリケーション作成
+# ================================
 # ================================
 # 🚀 FastAPI アプリケーション作成
 # ================================
 app = FastAPI()
+
+# Line128～132 追加✅ Githubに追加！
+origins = [
+    "https://tech0-gen-8-step4-richconnections-front-cmg3bsdnbwegepgk.germanywestcentral-01.azurewebsites.net",  # Next.js デフォルトポート
+]
+# Line128～132 追加✅ Githubに追加！
 
 # ==================================
 # 🌐 CORS（クロスオリジン）設定
 # ==================================
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=origins, # 追加✅ Githubに追加！
     allow_origins=["*"],  # セキュリティ上は必要に応じて制限
     allow_methods=["*"],
     allow_headers=["*"]
+    allow_headers=["*"]
 )
+
+# Line144～154 追加✅ Githubに追加！
+# =============================
+# DBセッションを取得する依存関数   
+# =============================
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+# Line144～154 追加✅ Githubに追加！
 
 # =======================
 # 🔐 Azure 環境変数から取得
@@ -90,6 +214,38 @@ class SignupRequest(BaseModel):
     email: str
     password: str
 
+# Line208～238 追加✅ Githubに追加！
+class UserIn(BaseModel):
+    name: str
+    email: str
+    password: str
+
+class AnswerIn(BaseModel):
+    question_id: int
+    answer_text: str
+
+class AnswerInput(BaseModel):
+    user_id: int
+    store_id: int
+    answers: Dict[str, str]  # 例: { "0-1": "Yes", ... }
+
+class QuestionnaireIn(BaseModel):
+    user_id: int
+    store_id: int
+    answers: List[AnswerIn]
+
+class SubmitRequest(BaseModel): #✅追加
+    answers: Dict # key: "0-0", value: "Yes"など ✅追加
+
+class DiagnosisRequest(BaseModel):  #✅追加
+    user_id: int
+    store_id: int
+    answers: Dict[str, str]
+
+class Answers(BaseModel):
+    answers: list[str]
+# Line208～238 追加✅ Githubに追加！
+
 # ============================
 # 🧪 動作確認用エンドポイント
 # ============================
@@ -97,34 +253,96 @@ class SignupRequest(BaseModel):
 async def hello_world():
     return JSONResponse(content={"message": "Hello World"})
 
-# ============================
-# 🚪 会員登録API (MySQL保存)
-# ============================
-@app.post("/api/register")
-async def register_user(user: SignupRequest):
-    try:
-        print("🔍 受け取ったデータ:", user.dict())
+# Line247～336 追加✅ Githubに追加！
+# =============================
+# ユーザー登録エンドポイント （ハッシュ照合対応）
+# =============================
+# 🔁 register_user を修正
+# パスワードハッシュ用の設定
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-        conn = mysql.connector.connect(**MYSQL_DB_CONFIG)
-        cursor = conn.cursor()
+@app.post("/register")
+def register_user(user: UserIn, db: Session = Depends(get_db)):
+    existing = db.query(User).filter(User.email == user.email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="すでに登録されたメールアドレスです")
+    
+    # パスワードをハッシュ化
+    hashed_password = pwd_context.hash(user.password)
 
-        insert_sql = """
-            INSERT INTO users (name, email, password, created_at, updated_at)
-            VALUES (%s, %s, %s, %s, %s)
-        """
-        now = datetime.utcnow()
-        cursor.execute(insert_sql, (user.name, user.email, user.password, now, now))
-        conn.commit()
+    new_user = User(
+        name=user.name,
+        email=user.email,
+        password=hashed_password,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow()
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return {"user_id": new_user.id}
 
-        print("✅ 登録完了:", user.email)
-        cursor.close()
-        conn.close()
+# =============================
+# ログイン　エンドポイント（ハッシュ照合対応）
+# =============================
+@app.post("/api/login")
+def login_user(credentials: dict, db: Session = Depends(get_db)):
+    email = credentials.get("email")
+    password = credentials.get("password")
 
-        return {"message": "User registered successfully"}
+    # 📌 ユーザー検索
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="メールアドレスまたはパスワードが間違っています")
 
-    except Exception as e:
-        print("❌ MySQL Insert Error:", e)
-        return JSONResponse(status_code=500, content={"message": str(e)})
+    # 🧠 パスワードハッシュを照合
+    if not pwd_context.verify(password, user.password):
+        raise HTTPException(status_code=401, detail="メールアドレスまたはパスワードが間違っています")
+
+    return {
+        "user_id": user.id,
+        "email": user.email,
+        "token": "sample-token"  # ✅ 将来的にJWTなどに置き換える
+    }
+
+# =============================
+# アンケート送信エンドポイント
+# =============================
+@app.post("/submit")
+async def submit_answers(payload: SubmitRequest):
+    print(payload.answers)
+    # DB 接続＆カーソル取得
+    db = mysql.connector.connect(
+        host=os.getenv("DB_HOST"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        database=os.getenv("DB_NAME"),
+        port=int(os.getenv("DB_PORT", 3306))
+    )
+    cursor = db.cursor()
+
+    # 回答リストを1件ずつ answers テーブルに INSERT
+    for key, ans in payload.answers.items():
+        try:
+            questionnaire_id_str, question_id_str = key.split("-")
+            questionnaire_id = int(questionnaire_id_str)
+            question_id = int(question_id_str)
+        except ValueError:
+            # キーの形式が不正な場合スキップ
+            continue
+
+    # 回答リストを1件ずつ answers テーブルに INSERT
+        cursor.execute(
+            "INSERT INTO answers (questionnaire_id, question_id, answer_text) VALUES (%s, %s, %s)",
+            (None, None, ans)  # 仮で questionnaire_id / question_id を None にしている場合
+        )
+
+    db.commit()
+    cursor.close()
+    db.close()
+
+    return {"status": "保存成功"}
+# Line247～336 追加✅ Githubに追加！
         
 # ============================
 # 🧠 経営分析APIエンドポイント
@@ -384,7 +602,14 @@ async def export_followers(username: str):
 # ======================
 # ▶️ ローカル実行（開発用）
 # ======================
+        print("❌ エラー:", str(e))
+        return JSONResponse(status_code=500, content={"error": str(e)})
+        
+# ======================
+# ▶️ ローカル実行（開発用）
+# ======================
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
+    print(f"Starting FastAPI on port {PORT} with DB {DB_NAME}") #　追加✅　Github追加
     uvicorn.run(app, host="0.0.0.0", port=port)
