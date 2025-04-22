@@ -37,25 +37,25 @@ load_dotenv() # ← 追加  Githubに追加！
 # =======================
 # Azure 環境変数から取得
 # =======================
-DB_HOST = os.getenv("DB_HOST")
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = urllib.parse.quote_plus(os.getenv("DB_PASSWORD"))  # URLエンコード
-DB_NAME = os.getenv("DB_NAME")
-DB_PORT = os.getenv("DB_PORT", "3306")
+MYSQL_DB_HOST = os.getenv("MYSQL_DB_HOST")
+MYSQL_DB_USER = os.getenv("MYSQL_DB_USER")
+MYSQL_DB_PASSWORD = urllib.parse.quote_plus(os.getenv("MYSQL_DB_PASSWORD"))  # URLエンコード
+MYSQL_DB_NAME = os.getenv("MYSQL_DB_NAME")
+MYSQL_DB_PORT = os.getenv("MYSQL_DB_PORT", "3306")
 PORT = int(os.getenv("PORT", 8080))  # デフォルト 8080
 
 print("✅ .env 読み込みチェック:")
-print("DB_HOST:", DB_HOST)
-print("DB_USER:", DB_USER)
-print("DB_PASSWORD:", DB_PASSWORD)
-print("DB_NAME:", DB_NAME)
-print("DB_PORT:", DB_PORT)
+print("MYSQL_DB_HOST:", MYSQL_DB_HOST)
+print("MYSQL_DB_USER:", MYSQL_DB_USER)
+print("MYSQL_DB_PASSWORD:", MYSQL_DB_PASSWORD)
+print("MYSQL_DB_NAME:", MYSQL_DB_NAME)
+print("MYSQL_DB_PORT:", MYSQL_DB_PORT)
 
 # SSL 証明書のパス
 SSL_CERT_PATH = os.path.join(os.path.dirname(__file__), "DigiCertGlobalRootCA.crt.pem")
 
 # MySQL接続情報（SSL 証明書を適用）
-SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{MYSQL_DB_USER}:{MYSQL_DB_PASSWORD}@{MYSQL_DB_HOST}:{MYSQL_DB_PORT}/{MYSQL_DB_NAME}"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
@@ -334,7 +334,7 @@ async def submit_answers(payload: SubmitRequest):
     db.close()
 
     return {"status": "保存成功"}
-# Line248～337追加✅ Githubに追加！
+# Line247～337 追加✅ Githubに追加！
         
 # ============================
 # 🧠 経営分析APIエンドポイント
@@ -603,5 +603,5 @@ async def export_followers(username: str):
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
-    print(f"Starting FastAPI on port {PORT} with DB {DB_NAME}") #　追加✅　Github追加
+    print(f"Starting FastAPI on port {PORT} with DB {MYSQL_DB_NAME}") #　追加✅　Github追加
     uvicorn.run(app, host="0.0.0.0", port=port)
