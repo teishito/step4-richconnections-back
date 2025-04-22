@@ -137,7 +137,6 @@ origins = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins, # 追加✅ Githubに追加！
-    allow_origins=["*"],  # セキュリティ上は必要に応じて制限
     allow_methods=["*"],
     allow_headers=["*"]
 )
