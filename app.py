@@ -602,6 +602,6 @@ async def export_followers(username: str):
 # ======================
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT", 8000))
+    port = int(os.environ.get("PORT", 8080))
     print(f"Starting FastAPI on port {PORT} with DB {MYSQL_DB_NAME}") #　追加✅　Github追加
     uvicorn.run(app, host="0.0.0.0", port=port)
