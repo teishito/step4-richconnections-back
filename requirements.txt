@@ -10,4 +10,4 @@ openai
 instaloader
 azure-storage-blob
 mysql-connector-python
-
+passlib[bcrypt]==1.7.4
