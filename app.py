@@ -255,7 +255,7 @@ async def hello_world():
 # パスワードハッシュ用の設定
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-@app.post("/register")
+@app.post("/api/register")
 def register_user(user: UserIn, db: Session = Depends(get_db)):
     existing = db.query(User).filter(User.email == user.email).first()
     if existing:
