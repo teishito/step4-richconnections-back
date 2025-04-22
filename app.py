@@ -23,6 +23,9 @@ import uuid
 import mysql.connector
 from datetime import datetime
 
+from fastapi.responses import FileResponse  # 2025.04.22 15時　追加✅ Githubに追加！
+import pymysql # 2025.04.22 15時　追加✅ Githubに追加！
+
 # Line26～121 追加✅ Githubに追加！
 from typing import Dict  # ← 追加  Githubに追加！
 import bcrypt  # ← 追加  Githubに追加！ # パスワードハッシュ化のため追加
@@ -304,11 +307,11 @@ async def submit_answers(payload: SubmitRequest):
     print(payload.answers)
     # DB 接続＆カーソル取得
     db = mysql.connector.connect(
-        host=os.getenv("DB_HOST"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD"),
-        database=os.getenv("DB_NAME"),
-        port=int(os.getenv("DB_PORT", 3306))
+        host=os.getenv("MYSQL_DB_HOST"),
+        user=os.getenv("MYSQL_DB_USER"),
+        password=os.getenv("MYSQL_DB_PASSWORD"),
+        database=os.getenv("MYSQL_DB_NAME"),
+        port=int(os.getenv("MYSQL_DB_PORT", 3306))
     )
     cursor = db.cursor()
 
@@ -601,6 +604,6 @@ async def export_followers(username: str):
 # ======================
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT", 8080))
+    port = int(os.environ.get("PORT", 8000))
     print(f"Starting FastAPI on port {PORT} with DB {MYSQL_DB_NAME}") #　追加✅　Github追加
     uvicorn.run(app, host="0.0.0.0", port=port)
